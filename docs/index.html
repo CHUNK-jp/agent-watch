@@ -1,0 +1,755 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>AgentWatch — Real-time AI Agent Monitor</title>
+<meta name="description" content="AIエージェントのアクション・コスト・動作履歴をリアルタイム監視するローカルCLIダッシュボード。OpenAI / Anthropic / Ollama 対応。クラウドなし・無料。" />
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #0d0d0d;
+  --bg2: #141414;
+  --bg3: #1a1a1a;
+  --border: #2a2a2a;
+  --text: #e8e8e8;
+  --muted: #888;
+  --accent: #3b82f6;
+  --accent2: #60a5fa;
+  --green: #4ade80;
+  --yellow: #facc15;
+  --red: #f87171;
+  --purple: #7c6af7;
+}
+
+html { scroll-behavior: smooth; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  line-height: 1.6;
+  min-height: 100vh;
+}
+
+a { color: inherit; text-decoration: none; }
+
+/* ─── NAV ─── */
+nav {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 2rem;
+  height: 56px;
+  background: rgba(13,13,13,0.85);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border);
+}
+
+.nav-logo {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 600;
+  font-size: 0.95rem;
+  letter-spacing: 0.01em;
+}
+.nav-logo .org { color: var(--muted); }
+.nav-logo .sep { color: var(--border); margin: 0 2px; }
+
+.nav-links {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+}
+.nav-links a {
+  font-size: 0.85rem;
+  color: var(--muted);
+  transition: color 0.15s;
+}
+.nav-links a:hover { color: var(--text); }
+
+.btn-portal {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  padding: 0.35rem 0.8rem;
+  border-radius: 6px;
+  font-size: 0.82rem;
+  color: var(--text);
+  transition: border-color 0.15s, background 0.15s;
+}
+.btn-portal:hover { border-color: var(--accent); color: var(--accent2); background: rgba(59,130,246,0.08); }
+
+.btn-gh {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  padding: 0.35rem 0.8rem;
+  border-radius: 6px;
+  font-size: 0.82rem;
+  color: var(--text);
+  transition: border-color 0.15s, background 0.15s;
+}
+.btn-gh:hover { border-color: #555; background: #222; }
+
+/* ─── HERO ─── */
+.hero {
+  max-width: 860px;
+  margin: 0 auto;
+  padding: 5rem 2rem 4rem;
+  text-align: center;
+}
+
+.hero-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  background: rgba(59,130,246,0.12);
+  border: 1px solid rgba(59,130,246,0.3);
+  border-radius: 999px;
+  padding: 0.3rem 0.9rem;
+  font-size: 0.78rem;
+  color: var(--accent2);
+  margin-bottom: 2rem;
+  letter-spacing: 0.03em;
+}
+
+.hero h1 {
+  font-size: clamp(2rem, 5vw, 3.4rem);
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+  margin-bottom: 1.2rem;
+}
+
+.hero h1 .hl {
+  background: linear-gradient(90deg, var(--accent), var(--accent2));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.hero p {
+  font-size: 1.1rem;
+  color: var(--muted);
+  max-width: 540px;
+  margin: 0 auto 2.5rem;
+}
+
+.hero-cta {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: var(--accent);
+  color: #fff;
+  padding: 0.65rem 1.4rem;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  transition: opacity 0.15s, transform 0.15s;
+}
+.btn-primary:hover { opacity: 0.88; transform: translateY(-1px); }
+
+.btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 0.65rem 1.4rem;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  transition: border-color 0.15s, background 0.15s;
+}
+.btn-secondary:hover { border-color: #555; background: var(--bg3); }
+
+/* ─── TERMINAL ─── */
+.terminal-wrap {
+  max-width: 700px;
+  margin: 3.5rem auto 0;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  box-shadow: 0 24px 64px rgba(0,0,0,0.6);
+}
+
+.terminal-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: #1c1c1c;
+  padding: 0.65rem 1rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.dot { width: 12px; height: 12px; border-radius: 50%; }
+.dot-r { background: #ff5f57; }
+.dot-y { background: #febc2e; }
+.dot-g { background: #28c840; }
+
+.terminal-title {
+  flex: 1;
+  text-align: center;
+  font-size: 0.75rem;
+  color: var(--muted);
+  font-family: 'SF Mono', 'Fira Code', monospace;
+}
+
+.terminal-body {
+  background: #0f0f0f;
+  padding: 1.4rem 1.6rem;
+  font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+  font-size: 0.82rem;
+  line-height: 1.75;
+  text-align: left;
+}
+
+.t-prompt { color: var(--accent); }
+.t-cmd    { color: var(--text); }
+.t-dim    { color: #555; }
+.t-agent  { color: var(--accent2); }
+.t-action { color: var(--text); }
+.t-cost   { color: var(--yellow); }
+.t-model  { color: #888; }
+.t-alert  { color: var(--red); font-weight: 600; }
+.t-green  { color: var(--green); }
+.t-blank  { height: 0.5rem; display: block; }
+
+/* ─── SECTION COMMON ─── */
+section { padding: 5rem 2rem; }
+.section-inner { max-width: 900px; margin: 0 auto; }
+
+.section-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 0.75rem;
+}
+
+.section-title {
+  font-size: clamp(1.5rem, 3vw, 2.2rem);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  margin-bottom: 0.6rem;
+}
+
+.section-sub {
+  color: var(--muted);
+  font-size: 1rem;
+  margin-bottom: 3rem;
+}
+
+/* ─── FEATURES ─── */
+.features-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1.2rem;
+}
+
+.feature-card {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 1.5rem;
+  transition: border-color 0.2s, transform 0.2s;
+}
+.feature-card:hover { border-color: #444; transform: translateY(-2px); }
+.feature-icon { font-size: 1.6rem; margin-bottom: 0.8rem; }
+.feature-card h3 { font-size: 0.95rem; font-weight: 600; margin-bottom: 0.4rem; }
+.feature-card p  { font-size: 0.85rem; color: var(--muted); line-height: 1.6; }
+
+/* ─── HOW IT WORKS ─── */
+#how { background: var(--bg2); }
+
+.pipeline {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0;
+  margin-bottom: 1.5rem;
+  justify-content: center;
+}
+
+.pipe-step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.4rem;
+  text-align: center;
+}
+
+.pipe-box {
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0.6rem 1rem;
+  font-size: 0.8rem;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.pipe-label { font-size: 0.7rem; color: var(--muted); }
+
+.pipe-arrow {
+  color: var(--border);
+  font-size: 1.2rem;
+  padding: 0 0.4rem;
+  padding-bottom: 1.2rem;
+}
+
+.pipe-highlight .pipe-box { border-color: var(--accent); color: var(--accent2); }
+
+.how-detail {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+  margin-top: 2rem;
+}
+
+.how-item { border-left: 2px solid var(--accent); padding-left: 1rem; }
+.how-item h4 { font-size: 0.88rem; font-weight: 600; margin-bottom: 0.3rem; }
+.how-item p  { font-size: 0.8rem; color: var(--muted); }
+
+/* ─── PROVIDERS ─── */
+.providers-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+}
+
+.provider-card {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 1.4rem 1.5rem;
+  transition: border-color 0.2s;
+}
+.provider-card:hover { border-color: var(--accent); }
+.provider-name { font-size: 0.95rem; font-weight: 600; margin-bottom: 0.6rem; }
+.provider-env {
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0.5rem 0.8rem;
+  font-family: 'SF Mono', 'Fira Code', monospace;
+  font-size: 0.72rem;
+  color: var(--accent2);
+  word-break: break-all;
+}
+
+/* ─── QUICK START ─── */
+.steps { display: flex; flex-direction: column; gap: 1rem; }
+
+.step { display: flex; gap: 1.2rem; align-items: flex-start; }
+
+.step-num {
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  background: rgba(59,130,246,0.15);
+  border: 1px solid rgba(59,130,246,0.4);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--accent);
+  margin-top: 2px;
+}
+
+.step-body h3 { font-size: 0.9rem; font-weight: 600; margin-bottom: 0.3rem; }
+.step-body p  { font-size: 0.82rem; color: var(--muted); margin-bottom: 0.5rem; }
+
+.code-block {
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0.6rem 0.9rem;
+  font-family: 'SF Mono', 'Fira Code', monospace;
+  font-size: 0.8rem;
+  color: var(--accent2);
+  overflow-x: auto;
+}
+
+/* ─── COMMANDS ─── */
+#commands { background: var(--bg2); }
+
+.commands-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.88rem;
+}
+.commands-table th {
+  text-align: left;
+  padding: 0.6rem 1rem;
+  color: var(--muted);
+  font-weight: 500;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  border-bottom: 1px solid var(--border);
+}
+.commands-table td {
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+  vertical-align: top;
+}
+.commands-table tr:last-child td { border-bottom: none; }
+.commands-table td:first-child {
+  font-family: 'SF Mono', 'Fira Code', monospace;
+  color: var(--accent2);
+  white-space: nowrap;
+  width: 260px;
+}
+.commands-table td:last-child { color: var(--muted); }
+
+/* ─── FOOTER ─── */
+footer {
+  border-top: 1px solid var(--border);
+  padding: 2rem;
+  text-align: center;
+  font-size: 0.82rem;
+  color: var(--muted);
+}
+footer a { color: var(--accent); transition: opacity 0.15s; }
+footer a:hover { opacity: 0.75; }
+.footer-links {
+  display: flex;
+  justify-content: center;
+  gap: 1.5rem;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+}
+
+/* ─── RESPONSIVE ─── */
+@media (max-width: 600px) {
+  nav { padding: 0 1.2rem; }
+  .hero { padding: 3.5rem 1.2rem 3rem; }
+  section { padding: 3rem 1.2rem 4rem; }
+  .nav-links a:not(.btn-gh):not(.btn-portal) { display: none; }
+}
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <a class="nav-logo" href="#">
+    <span class="org">CHUNK-jp</span>
+    <span class="sep">/</span>
+    <span>agent-watch</span>
+  </a>
+  <div class="nav-links">
+    <a href="#features">Features</a>
+    <a href="#quickstart">Quick Start</a>
+    <a class="btn-portal" href="https://CHUNK-jp.github.io/" target="_blank" rel="noopener">← CHUNK-jp Portal</a>
+    <a class="btn-gh" href="https://github.com/CHUNK-jp/agent-watch" target="_blank" rel="noopener">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/></svg>
+      GitHub
+    </a>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-badge">👁 ローカル完結 &nbsp;·&nbsp; クラウド不使用 &nbsp;·&nbsp; 無料</div>
+  <h1>AIエージェントが<br/><span class="hl">何をしているか、見えていますか？</span></h1>
+  <p>AgentWatch はあなたのAIエージェントの動作・コスト・API呼び出し履歴をリアルタイムで可視化するローカルCLIダッシュボード。エージェントの挙動を完全に把握してください。</p>
+  <div class="hero-cta">
+    <a class="btn-primary" href="https://github.com/CHUNK-jp/agent-watch" target="_blank" rel="noopener">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/></svg>
+      GitHub で見る
+    </a>
+    <a class="btn-secondary" href="#quickstart">クイックスタート →</a>
+  </div>
+
+  <!-- Terminal Demo -->
+  <div class="terminal-wrap">
+    <div class="terminal-bar">
+      <div class="dot dot-r"></div>
+      <div class="dot dot-y"></div>
+      <div class="dot dot-g"></div>
+      <span class="terminal-title">agent-watch — zsh</span>
+    </div>
+    <div class="terminal-body">
+      <div><span class="t-prompt">❯ </span><span class="t-cmd">python3 agentwatch.py watch</span></div>
+      <div class="t-dim">&nbsp;&nbsp;👁  AgentWatch — starting up</div>
+      <div class="t-dim">&nbsp;&nbsp;Proxy     http://localhost:8080</div>
+      <div class="t-dim">&nbsp;&nbsp;Dashboard → http://localhost:7070</div>
+      <div class="t-green">&nbsp;&nbsp;✓ Monitoring active  (Ctrl+C to stop)</div>
+      <span class="t-blank"></span>
+      <div>
+        <span class="t-dim">[12:34:01] </span>
+        <span class="t-agent">claude-code</span>
+        <span class="t-action"> → chat_completion </span>
+        <span class="t-model">[claude-sonnet-4] </span>
+        <span class="t-cost"> $0.0031</span>
+        <span class="t-dim">  142ms</span>
+      </div>
+      <div>
+        <span class="t-dim">[12:34:03] </span>
+        <span class="t-agent">my-agent&nbsp;&nbsp;&nbsp;</span>
+        <span class="t-action"> → chat_completion </span>
+        <span class="t-model">[gpt-4o-mini]    </span>
+        <span class="t-cost"> $0.0008</span>
+        <span class="t-dim">   89ms</span>
+      </div>
+      <div>
+        <span class="t-dim">[12:34:07] </span>
+        <span class="t-agent">claude-code</span>
+        <span class="t-action"> → chat_completion </span>
+        <span class="t-model">[claude-sonnet-4] </span>
+        <span class="t-cost"> $0.0044</span>
+        <span class="t-dim">  198ms</span>
+      </div>
+      <span class="t-blank"></span>
+      <div class="t-alert">&nbsp;&nbsp;⚠️  Cost alert: $0.1012 exceeded $0.10 threshold</div>
+      <span class="t-blank"></span>
+      <div class="t-dim">&nbsp;&nbsp;📊 Session: 3 actions · 4,821 tokens · $0.1012</div>
+    </div>
+  </div>
+</section>
+
+<!-- FEATURES -->
+<section id="features">
+  <div class="section-inner">
+    <div class="section-label">Features</div>
+    <h2 class="section-title">ので AgentWatch のか。のか。</h2>
+    <p class="section-sub">オージェントは厖つておものでます。でり ��をしておるかは訋えでキであもます。AgentWatch がそれを変える。</p>
+    <div class="features-grid">
+      <div class="feature-card">
+        <div class="feature-icon">⚡</div>
+        <h3>リアルタイヨ監/��</h3>
+        <p>エージェントのすべてのAPI呼び出しを0.5秒以内にキャプチャ、WebSocketで即座にダッシュボードへ反映します。</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">💰</div>
+        <h3>コスト自動計算</h3>
+        <p>OpenAI・Anthropicの最新料金テーブルに基づきトー⊤クン単価を自動計算。累計コストをリアルタイムで把握。</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🔔</div>
+        <h3>コスト・アクションアラート</h3>
+        <p>設定した閾値を超えたらターミナルに即座に通知。Slack webhookにも対応。暴走エージェントを止める。</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">📊</div>
+        <h3>エージェント別分析</h3>
+        <p>複数エージェントを同時監視。どのエージェントがいつ・どはモデルで・いくら消費したかを一覧で確認。</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🔒</div>
+        <h3>完全ローカル動作</h3>
+        <p>プロキシも実ダッシュボードもlocalhost上で動作。ログは <code>~/.agentwatch/logs.db</code> に保存。外部サーバー不要。</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🔌</div>
+        <h3>マルチプロバイダー対応</h3>
+        <p>OpenAI・Anthropic・Ollamaをenv変数1行で切り替え。既存エージェントのコード変更ゼロで導入可能。</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- HOW IT WORKS -->
+<section id="how">
+  <div class="section-inner">
+    <div class="section-label">How It Works</div>
+    <h2 class="section-title">仕組み</h2>
+    <p class="section-sub">AgentWatch はAPIエンドポイントとエージェントの間に入る透過プロキシ。エージェントの動作は一切変えません。</p>
+
+    <div class="pipeline">
+      <div class="pipe-step">
+        <div class="pipe-box">🤖 Agent</div>
+        <div class="pipe-label">あなたのエージェント</div>
+      </div>
+      <div class="pipe-arrow">→</div>
+      <div class="pipe-step pipe-highlight">
+        <div class="pipe-box">👁 AgentWatch Proxy</div>
+        <div class="pipe-label">localhost:8080</div>
+      </div>
+      <div class="pipe-arrow">→</div>
+      <div class="pipe-step">
+        <div class="pipe-box">☁️ API</div>
+        <div class="pipe-label">OpenAI / Anthropic / Ollama</div>
+      </div>
+    </div>
+
+    <div class="pipeline">
+      <div class="pipe-step pipe-highlight">
+        <div class="pipe-box">🗄️ SQLite</div>
+        <div class="pipe-label">~/.agentwatch/logs.db</div>
+      </div>
+      <div class="pipe-arrow">→</div>
+      <div class="pipe-step pipe-highlight">
+        <div class="pipe-box">📊 Dashboard</div>
+        <div class="pipe-label">localhost:7070</div>
+      </div>
+      <div class="pipe-arrow">→</div>
+      <div class="pipe-step">
+        <div class="pipe-box">🔔 Alerts</div>
+        <div class="pipe-label">Terminal / Slack</div>
+      </div>
+    </div>
+
+    <div class="how-detail">
+      <div class="how-item">
+        <h4>透過プロキシ</h4>
+        <p>エージェントのAPIリクエストをそのまま転送しつつ、レスポンスからトークン数・モデル・レイテンスを���出してDBへ記録。</p>
+      </div>
+      <div class="how-item">
+        <h4>コスト計算</h4>
+        <p>OpenAI・Anthropicの公式料金テーブルを内蔵。入力・出力トークンから自動で$コストを算出します。</p>
+      </div>
+      <div class="how-item">
+        <h4>WebSocketダッシュボード</h4>
+        <p>FastAPI + WebSocketで1秒ごとにブラウザへプッシュ。複数エージェントの状況をリアルタイムで表示。</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- SUPPORTED PROVIDERS -->
+<section id="providers">
+  <div class="section-inner">
+    <div class="section-label">対応プロバイダー</div>
+    <h2 class="section-title">env変数1行で導入完了</h2>
+    <p class="section-sub">既存エージェントのコードを一切変更せず、環境変数を設定するだけで監視開始。</p>
+    <div class="providers-grid">
+      <div class="provider-card">
+        <div class="provider-name">🟢 OpenAI</div>
+        <div class="provider-env">OPENAI_BASE_URL=http://localhost:8080/openai</div>
+      </div>
+      <div class="provider-card">
+        <div class="provider-name">🟠 Anthropic</div>
+        <div class="provider-env">ANTHROPIC_BASE_URL=http://localhost:8080/anthropic</div>
+      </div>
+      <div class="provider-card">
+        <div class="provider-name">🦙 Ollama</div>
+        <div class="provider-env">OLLAMA_HOST=http://localhost:8080/ollama</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- QUICK START -->
+<section id="quickstart">
+  <div class="section-inner">
+    <div class="section-label">Quick Start</div>
+    <h2 class="section-title">3分で監視開始</h2>
+    <p class="section-sub">Python 3.10 以上が必要です。</p>
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">1</div>
+        <div class="step-body">
+          <h3>リポジトリをクローンして依存関係をインストール</h3>
+          <div class="code-block">git clone https://github.com/CHUNK-jp/agent-watch.git &amp;&amp; cd agent-watch<br/>pip install -r requirements.txt</div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <div class="step-body">
+          <h3>プロキシ設定を確認</h3>
+          <p>使用するAPIプロバイダーに応じた環境変数を確認します。</p>
+          <div class="code-block">python3 agentwatch.py config</div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <div class="step-body">
+          <h3>エージェントの前に AgentWatch を起動</h3>
+          <div class="code-block">python3 agentwatch.py watch</div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">4</div>
+        <div class="step-body">
+          <h3>別ターミナルでエージェントを実行（env変数を設定して）</h3>
+          <div class="code-block">OPENAI_BASE_URL=http://localhost:8080/openai python3 your_agent.py</div>
+          <p style="margin-top:0.5rem">ダッシュボードが <a href="http://localhost:7070" style="color:var(--accent)">http://localhost:7070</a> で自動オープンします。</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- COMMANDS -->
+<section id="commands">
+  <div class="section-inner">
+    <div class="section-label">Commands</div>
+    <h2 class="section-title">CLIリファレンス</h2>
+    <p class="section-sub">シンプルなコマンド体系。</p>
+    <table class="commands-table">
+      <thead>
+        <tr>
+          <th>コマンド</th>
+          <th>説明</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>agentwatch.py watch</td>
+          <td>プロキシ（ライブログ）ダッシュボードを起動</td>
+        </tr>
+        <tr>
+          <td>agentwatch.py watch --alert-cost 0.05</td>
+          <td>コスト閾値を$0.05に設定してアラートを受け取る</td>
+        </tr>
+        <tr>
+          <td>agentwatch.py watch --no-dashboard</td>
+          <td>Webダッシュボードなしでターミナルのみ監視</td>
+        </tr>
+        <tr>
+          <td>agentwatch.py status</td>
+          <td>セッション累計（アクション数・トークン・コスト）を表示</td>
+        </tr>
+        <tr>
+          <td>agentwatch.py export output.json</td>
+          <td>全ログをJSONにエクスポート</td>
+        </tr>
+        <tr>
+          <td>agentwatch.py clear</td>
+          <td>すぽてのログを削除</td>
+        </tr>
+        <tr>
+          <td>agentwatch.py config</td>
+          <td>プロキシ設定の環境変数を表示</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-links">
+    <a href="https://github.com/CHUNK-jp/agent-watch" target="_blank" rel="noopener">GitHub</a>
+    <a href="https://chunk-jp.github.io/" target="_blank" rel="noopener">CHUNK-jp Portal</a>
+    <a href="https://github.com/CHUNK-jp/agent-watch/blob/main/LICENSE" target="_blank" rel="noopener">MIT License</a>
+  </div>
+  <p>Built by <a href="https://github.com/CHUNK-jp" target="_blank" rel="noopener">CHUNK-jp</a> · No cloud. No subscription. Just your agents.</p>
+</footer>
+
+</body>
+</html>
