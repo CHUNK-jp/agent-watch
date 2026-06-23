@@ -11,11 +11,7 @@ A local-first CLI dashboard that intercepts OpenAI / Anthropic / Ollama API call
 logs every action, tracks costs, and alerts you when thresholds are exceeded.
 No cloud. No account. Just your agents, visible.
 
-```
-[12:34:01] claude-code → chat_completion [claude-sonnet-4]  $0.0031  142ms
-[12:34:03] my-agent   → chat_completion [gpt-4o-mini]       $0.0008   89ms
-⚠️  Cost alert: $0.1012 exceeded $0.10 threshold
-```
+![AgentWatch demo](docs/demo.gif)
 
 ## Quick Start
 
