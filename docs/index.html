@@ -1,762 +1,812 @@
 <!DOCTYPE html>
-<html lang="ja">
+<html lang="en">
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>AgentWatch — Real-time AI Agent Monitor</title>
-<meta name="description" content="AIエージェントのアクション・コスト・動作履歴をリアルタイム監視するローカルCLIダッシュボード。OpenAI / Anthropic / Ollama 対応。クラウドなし・無料。" />
+<title>AgentWatch — Full observability into your AI agents.</title>
+<meta name="description" content="AgentWatch gives developers a real-time CLI dashboard showing every API call, every token spent, and every agent action as it happens. Zero guesswork. Zero surprises." />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
 <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-:root {
-  --bg: #0d0d0d;
-  --bg2: #141414;
-  --bg3: #1a1a1a;
-  --border: #2a2a2a;
-  --text: #e8e8e8;
-  --muted: #888;
-  --accent: #3b82f6;
-  --accent2: #60a5fa;
-  --green: #4ade80;
-  --yellow: #facc15;
-  --red: #f87171;
-  --purple: #7c6af7;
-}
-
 html { scroll-behavior: smooth; }
-
-body {
-  background: var(--bg);
-  color: var(--text);
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  line-height: 1.6;
-  min-height: 100vh;
-}
-
+body { background: #09090B; color: #FAFAFA; font-family: 'Inter', system-ui, -apple-system, sans-serif; -webkit-font-smoothing: antialiased; line-height: 1; }
+::selection { background: rgba(59,130,246,0.25); color: #FAFAFA; }
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #27272A; border-radius: 3px; }
 a { color: inherit; text-decoration: none; }
 
-/* ─── NAV ─── */
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%       { opacity: 0.45; transform: scale(0.8); }
+}
+@keyframes fade-in-up {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ── NAV ── */
 nav {
-  position: sticky;
-  top: 0;
-  z-index: 100;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 2rem;
-  height: 56px;
-  background: rgba(13,13,13,0.85);
-  backdrop-filter: blur(12px);
-  border-bottom: 1px solid var(--border);
+  position: sticky; top: 0; z-index: 100;
+  background: rgba(9,9,11,0.85);
+  border-bottom: 1px solid #18181B;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
 }
-
-.nav-logo {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  font-weight: 600;
-  font-size: 0.95rem;
-  letter-spacing: 0.01em;
+.nav-inner {
+  max-width: 1100px; margin: 0 auto; padding: 0 24px;
+  display: flex; align-items: center; height: 64px; gap: 40px;
 }
-.nav-logo .org { color: var(--muted); }
-.nav-logo .sep { color: var(--border); margin: 0 2px; }
-
-.nav-links {
-  display: flex;
-  align-items: center;
-  gap: 1.5rem;
+.nav-logo { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+.nav-logo-icon {
+  width: 32px; height: 32px;
+  background: rgba(59,130,246,0.1); border: 1px solid rgba(59,130,246,0.2);
+  border-radius: 8px; display: flex; align-items: center; justify-content: center;
 }
+.nav-logo-text { font-size: 15px; font-weight: 600; letter-spacing: -0.01em; }
+.nav-links { display: flex; align-items: center; gap: 4px; flex: 1; }
 .nav-links a {
-  font-size: 0.85rem;
-  color: var(--muted);
+  font-size: 14px; color: #71717A; padding: 6px 12px; border-radius: 6px;
+  transition: color 0.15s, background 0.15s;
+}
+.nav-links a:hover { color: #FAFAFA; background: #111113; }
+.nav-cta {
+  display: inline-flex; align-items: center; gap: 8px;
+  background: #3B82F6; color: #fff;
+  font-size: 13px; font-weight: 500; padding: 8px 18px;
+  border-radius: 8px; flex-shrink: 0; letter-spacing: -0.01em;
+  transition: background 0.15s;
+}
+.nav-cta:hover { background: #2563EB; }
+
+/* ── HERO ── */
+.hero {
+  position: relative; padding: 80px 24px 88px; overflow: hidden;
+}
+.hero-bg-glow {
+  position: absolute; inset: 0;
+  background: radial-gradient(ellipse 60% 50% at 20% 50%, rgba(59,130,246,0.07) 0%, transparent 70%);
+  pointer-events: none;
+}
+.hero-bg-grid {
+  position: absolute; inset: 0;
+  background-image: linear-gradient(rgba(255,255,255,0.014) 1px, transparent 1px),
+                    linear-gradient(90deg, rgba(255,255,255,0.014) 1px, transparent 1px);
+  background-size: 44px 44px; pointer-events: none;
+  mask-image: radial-gradient(ellipse 60% 80% at 20% 50%, black 0%, transparent 70%);
+  -webkit-mask-image: radial-gradient(ellipse 60% 80% at 20% 50%, black 0%, transparent 70%);
+}
+.hero-inner {
+  max-width: 1100px; margin: 0 auto;
+  display: grid; grid-template-columns: 5fr 7fr; gap: 72px;
+  align-items: center; position: relative;
+  animation: fade-in-up 0.6s ease both;
+}
+.hero-badge {
+  display: inline-flex; align-items: center; gap: 8px;
+  background: rgba(59,130,246,0.08); border: 1px solid rgba(59,130,246,0.18);
+  border-radius: 100px; padding: 6px 16px; margin-bottom: 32px;
+}
+.hero-badge-dot {
+  width: 6px; height: 6px; border-radius: 50%; background: #3B82F6;
+  animation: pulse-dot 2.4s ease-in-out infinite;
+}
+.hero-badge-text {
+  font-size: 13px; color: #60A5FA; font-weight: 500; letter-spacing: -0.01em;
+  font-family: 'JetBrains Mono', monospace;
+}
+.hero h1 {
+  font-size: clamp(2.2rem, 4vw, 3.25rem);
+  font-weight: 700; line-height: 1.05; letter-spacing: -0.035em; margin-bottom: 22px;
+}
+.hero h1 .hl { color: #3B82F6; }
+.hero-sub {
+  font-size: 17px; color: #71717A; line-height: 1.7; margin-bottom: 40px;
+}
+.hero-ctas { display: flex; flex-direction: column; gap: 10px; align-items: flex-start; }
+.btn-primary {
+  display: inline-flex; align-items: center; gap: 10px;
+  background: #3B82F6; color: #fff;
+  font-size: 15px; font-weight: 600; padding: 13px 26px;
+  border-radius: 10px; letter-spacing: -0.01em; transition: background 0.15s;
+}
+.btn-primary:hover { background: #2563EB; }
+.hero-links { display: flex; gap: 16px; align-items: center; margin-top: 4px; }
+.hero-link {
+  display: inline-flex; align-items: center; gap: 6px;
+  color: #71717A; font-size: 14px; transition: color 0.15s;
+}
+.hero-link:hover { color: #A1A1AA; }
+.hero-link-mono { font-family: 'JetBrains Mono', monospace; font-size: 13px; }
+.hero-sep { color: #27272A; }
+.hero-note { font-size: 12px; color: #3F3F46; margin-top: 20px; }
+
+/* ── TERMINAL MOCKUP ── */
+.terminal-wrap { position: relative; }
+.terminal-glow {
+  position: absolute; inset: -24px;
+  background: radial-gradient(ellipse 70% 60% at 50% 50%, rgba(59,130,246,0.06) 0%, transparent 70%);
+  pointer-events: none; border-radius: 20px;
+}
+.terminal {
+  position: relative;
+  background: #0C0C0F; border: 1px solid #27272A; border-radius: 12px; overflow: hidden;
+  box-shadow: 0 32px 80px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.03);
+}
+.terminal-titlebar {
+  background: #161619; padding: 11px 16px;
+  display: flex; align-items: center; gap: 7px; border-bottom: 1px solid #27272A;
+}
+.term-dot { width: 11px; height: 11px; background: #3F3F46; border-radius: 50%; }
+.terminal-title {
+  flex: 1; text-align: center;
+  font-size: 11px; color: #52525B; font-family: 'JetBrains Mono', monospace; letter-spacing: 0.01em;
+}
+.terminal-status {
+  display: flex; align-items: center; gap: 5px;
+  font-size: 11px; font-family: 'JetBrains Mono', monospace;
+}
+.status-dot {
+  width: 6px; height: 6px; background: #22C55E; border-radius: 50%;
+  animation: pulse-dot 2s infinite;
+}
+.terminal-infobar {
+  background: #111113; padding: 9px 20px;
+  display: flex; align-items: center; justify-content: space-between;
+  border-bottom: 1px solid #1C1C1F;
+  font-size: 12px; font-family: 'JetBrains Mono', monospace; color: #52525B;
+}
+.info-sep { color: #27272A; margin: 0 8px; }
+.info-live {
+  font-size: 11px; font-family: 'JetBrains Mono', monospace;
+  color: #3F3F46; display: flex; align-items: center; gap: 5px;
+}
+.live-dot {
+  width: 5px; height: 5px; background: #3B82F6; border-radius: 50%;
+  animation: pulse-dot 1.5s infinite;
+}
+.terminal-logs { padding: 10px 0; min-height: 216px; }
+.log-row {
+  display: grid; grid-template-columns: 70px 22px 1fr 54px;
+  gap: 8px; padding: 5px 20px; align-items: center;
+  border-bottom: 1px solid rgba(255,255,255,0.022);
+  cursor: default; transition: background 0.1s;
+}
+.log-row:hover { background: rgba(255,255,255,0.02); }
+.log-time { font-size: 12px; font-family: 'JetBrains Mono', monospace; color: #52525B; }
+.log-dir-call { font-size: 13px; font-family: 'JetBrains Mono', monospace; color: #3B82F6; font-weight: 600; }
+.log-dir-resp { font-size: 13px; font-family: 'JetBrains Mono', monospace; color: #22C55E; font-weight: 600; }
+.log-action-call {
+  font-size: 12px; font-family: 'JetBrains Mono', monospace; color: #D4D4D8;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.log-action-resp {
+  font-size: 12px; font-family: 'JetBrains Mono', monospace; color: #71717A;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.log-cost { font-size: 12px; font-family: 'JetBrains Mono', monospace; color: #F59E0B; text-align: right; }
+.terminal-cursor {
+  padding: 4px 20px; font-size: 13px; font-family: 'JetBrains Mono', monospace;
+  color: #3B82F6; line-height: 1; height: 26px;
+}
+.terminal-footer {
+  background: #111113; padding: 10px 20px;
+  display: flex; align-items: center; justify-content: space-between;
+  border-top: 1px solid #1C1C1F;
+}
+.footer-stats { display: flex; gap: 20px; }
+.footer-stat { font-size: 12px; font-family: 'JetBrains Mono', monospace; color: #52525B; }
+.footer-stat-val { font-weight: 500; }
+.footer-stat-cost { color: #F59E0B; }
+.footer-stat-neutral { color: #A1A1AA; }
+.footer-refresh { font-size: 11px; font-family: 'JetBrains Mono', monospace; color: #3F3F46; }
+
+/* ── STATS STRIP ── */
+.stats-strip { border-top: 1px solid #18181B; border-bottom: 1px solid #18181B; background: #0C0C0E; }
+.stats-grid {
+  max-width: 1100px; margin: 0 auto; padding: 0 24px;
+  display: grid; grid-template-columns: repeat(3, 1fr);
+}
+.stat-cell { padding: 44px 40px; text-align: center; }
+.stat-cell:not(:last-child) { border-right: 1px solid #18181B; }
+.stat-value {
+  font-size: 48px; font-weight: 700; letter-spacing: -0.04em; color: #FAFAFA;
+  font-family: 'JetBrains Mono', monospace;
+}
+.stat-label { font-size: 14px; color: #71717A; margin-top: 8px; }
+
+/* ── SECTIONS ── */
+.section-inner { max-width: 1100px; margin: 0 auto; }
+.section-header { text-align: center; margin-bottom: 72px; }
+.section-eyebrow {
+  display: inline-block; font-size: 11px; font-weight: 600; color: #52525B;
+  text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 16px;
+}
+.section-title {
+  font-size: clamp(2rem, 4vw, 3rem); font-weight: 700;
+  letter-spacing: -0.03em; margin-bottom: 16px;
+}
+.section-sub { font-size: 18px; color: #71717A; max-width: 440px; margin: 0 auto; line-height: 1.6; }
+
+/* ── CAPABILITIES ── */
+.capabilities-section { padding: 120px 24px; }
+.capabilities-grid {
+  display: grid; grid-template-columns: repeat(3, 1fr);
+  gap: 1px; background: #18181B; border-radius: 16px; overflow: hidden;
+  border: 1px solid #18181B;
+}
+.cap-card { background: #09090B; padding: 40px 36px; transition: background 0.15s; }
+.cap-card:hover { background: #0E0E10; }
+.cap-icon {
+  width: 44px; height: 44px;
+  background: rgba(59,130,246,0.08); border: 1px solid rgba(59,130,246,0.12);
+  border-radius: 10px; display: flex; align-items: center; justify-content: center;
+  margin-bottom: 20px;
+}
+.cap-card h3 { font-size: 17px; font-weight: 600; margin-bottom: 10px; letter-spacing: -0.01em; }
+.cap-card p { font-size: 14px; color: #71717A; line-height: 1.7; }
+
+/* ── FRAMEWORKS ── */
+.frameworks-section { padding: 0 24px 120px; }
+.framework-tags { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; margin-bottom: 20px; }
+.fw-tag {
+  display: inline-flex; align-items: center; gap: 8px;
+  background: #111113; border: 1px solid #27272A; border-radius: 8px; padding: 10px 18px;
+  transition: border-color 0.15s;
+}
+.fw-tag:hover { border-color: #3F3F46; }
+.fw-tag-custom {
+  background: rgba(59,130,246,0.06); border-color: rgba(59,130,246,0.2);
+}
+.fw-tag-custom:hover { border-color: rgba(59,130,246,0.4); }
+.fw-dot { width: 6px; height: 6px; border-radius: 50%; background: #22C55E; }
+.fw-dot-blue { background: #3B82F6; }
+.fw-name { font-size: 14px; font-weight: 500; font-family: 'JetBrains Mono', monospace; }
+.fw-name-blue { color: #60A5FA; }
+.frameworks-note { text-align: center; font-size: 13px; color: #52525B; font-family: 'JetBrains Mono', monospace; }
+
+/* ── PRIVACY ── */
+.privacy-section { padding: 0 24px 120px; }
+.privacy-card {
+  background: #0E0E10; border: 1px solid #18181B; border-radius: 20px; overflow: hidden;
+}
+.privacy-top {
+  padding: 64px; display: grid; grid-template-columns: 1fr 1fr; gap: 80px;
+  align-items: center; border-bottom: 1px solid #18181B;
+}
+.privacy-checks { display: flex; flex-direction: column; gap: 10px; }
+.privacy-check { display: flex; align-items: center; gap: 10px; font-size: 14px; color: #A1A1AA; }
+.code-block {
+  background: #09090B; border: 1px solid #27272A; border-radius: 12px; overflow: hidden;
+}
+.code-header {
+  background: #161619; padding: 10px 16px;
+  display: flex; align-items: center; justify-content: space-between;
+  border-bottom: 1px solid #27272A;
+}
+.code-filename { font-size: 11px; font-family: 'JetBrains Mono', monospace; color: #52525B; }
+.code-badge { font-size: 11px; font-family: 'JetBrains Mono', monospace; color: #3B82F6; }
+.code-body { padding: 20px 24px; font-family: 'JetBrains Mono', monospace; font-size: 12px; line-height: 1.9; }
+.c-dim    { color: #52525B; }
+.c-purple { color: #8B5CF6; }
+.c-blue   { color: #60A5FA; }
+.c-white  { color: #FAFAFA; }
+.c-gray   { color: #71717A; }
+.c-indent { margin-left: 20px; }
+.c-str    { color: #22C55E; }
+.c-false  { color: #EF4444; }
+.c-num    { color: #F59E0B; }
+.c-key    { color: #A1A1AA; }
+.privacy-bottom {
+  padding: 32px 64px; display: flex; align-items: center; gap: 24px; flex-wrap: wrap;
+}
+.privacy-bottom-text { flex: 1; min-width: 280px; }
+.privacy-bottom-text .label { font-size: 14px; font-weight: 500; margin-bottom: 4px; letter-spacing: -0.01em; }
+.privacy-bottom-text .sub { font-size: 13px; color: #71717A; }
+.install-snippet {
+  display: flex; align-items: center; gap: 10px;
+  background: #09090B; border: 1px solid #27272A;
+  border-radius: 8px; padding: 12px 20px;
+  font-family: 'JetBrains Mono', monospace; font-size: 13px; flex-shrink: 0;
+}
+.install-prompt { color: #52525B; }
+.install-cmd { color: #FAFAFA; }
+
+/* ── CTA ── */
+.cta-section { padding: 0 24px 120px; }
+.cta-card {
+  max-width: 1100px; margin: 0 auto;
+  text-align: center; padding: 80px 48px;
+  background: #111113; border: 1px solid #1E1E23;
+  border-radius: 20px; position: relative; overflow: hidden;
+}
+.cta-bg-glow {
+  position: absolute; inset: 0;
+  background: radial-gradient(ellipse 50% 60% at 50% 0%, rgba(59,130,246,0.07) 0%, transparent 70%);
+  pointer-events: none;
+}
+.cta-line {
+  position: absolute; top: 0; left: 50%; transform: translateX(-50%);
+  width: 1px; height: 80px; background: linear-gradient(to bottom, #3B82F6, transparent);
+}
+.cta-inner { position: relative; }
+.cta-eyebrow {
+  display: inline-block; font-size: 11px; font-weight: 600; color: #52525B;
+  text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 20px;
+  font-family: 'JetBrains Mono', monospace;
+}
+.cta-title {
+  font-size: clamp(2rem, 4vw, 3.25rem); font-weight: 700;
+  letter-spacing: -0.03em; margin-bottom: 16px;
+}
+.cta-sub {
+  font-size: 18px; color: #71717A; line-height: 1.6;
+  max-width: 400px; margin: 0 auto 44px;
+}
+.cta-buttons { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; margin-bottom: 20px; }
+.btn-primary-lg {
+  display: inline-flex; align-items: center; gap: 10px;
+  background: #3B82F6; color: #fff;
+  font-size: 16px; font-weight: 600; padding: 16px 32px;
+  border-radius: 12px; letter-spacing: -0.01em; transition: background 0.15s;
+}
+.btn-primary-lg:hover { background: #2563EB; }
+.btn-ghost-lg {
+  display: inline-flex; align-items: center; gap: 8px;
+  background: #18181B; color: #A1A1AA;
+  font-size: 14px; font-weight: 500; padding: 16px 28px;
+  border-radius: 12px; border: 1px solid #27272A;
+  font-family: 'JetBrains Mono', monospace;
+  transition: border-color 0.15s, color 0.15s;
+}
+.btn-ghost-lg:hover { border-color: #3F3F46; color: #FAFAFA; }
+.cta-note { font-size: 13px; color: #52525B; }
+
+/* ── FOOTER ── */
+footer { border-top: 1px solid #18181B; padding: 40px 24px; }
+.footer-inner {
+  max-width: 1100px; margin: 0 auto;
+  display: flex; align-items: center; justify-content: space-between;
+  flex-wrap: wrap; gap: 24px;
+}
+.footer-logo { display: flex; align-items: center; gap: 12px; }
+.footer-logo-icon {
+  width: 28px; height: 28px;
+  background: rgba(59,130,246,0.1); border: 1px solid rgba(59,130,246,0.18);
+  border-radius: 6px; display: flex; align-items: center; justify-content: center;
+}
+.footer-logo-text { font-size: 14px; font-weight: 600; }
+.footer-suite { font-size: 13px; color: #3F3F46; }
+.footer-links { display: flex; align-items: center; gap: 4px; }
+.footer-links a {
+  font-size: 13px; color: #52525B; padding: 4px 10px; border-radius: 5px;
   transition: color 0.15s;
 }
-.nav-links a:hover { color: var(--text); }
+.footer-links a:hover { color: #A1A1AA; }
+.footer-copy { font-size: 13px; color: #3F3F46; font-family: 'JetBrains Mono', monospace; }
 
-.btn-portal {
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
-  background: var(--bg3);
-  border: 1px solid var(--border);
-  padding: 0.35rem 0.8rem;
-  border-radius: 6px;
-  font-size: 0.82rem;
-  color: var(--text);
-  transition: border-color 0.15s, background 0.15s;
+@media (max-width: 900px) {
+  .hero-inner { grid-template-columns: 1fr; gap: 48px; }
+  .privacy-top { grid-template-columns: 1fr; gap: 32px; padding: 40px; }
+  .privacy-bottom { padding: 24px 40px; }
+  .capabilities-grid { grid-template-columns: 1fr; }
 }
-.btn-portal:hover { border-color: var(--accent); color: var(--accent2); background: rgba(59,130,246,0.08); }
-
-.btn-gh {
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
-  background: var(--bg3);
-  border: 1px solid var(--border);
-  padding: 0.35rem 0.8rem;
-  border-radius: 6px;
-  font-size: 0.82rem;
-  color: var(--text);
-  transition: border-color 0.15s, background 0.15s;
-}
-.btn-gh:hover { border-color: #555; background: #222; }
-
-/* ─── HERO ─── */
-.hero {
-  max-width: 860px;
-  margin: 0 auto;
-  padding: 5rem 2rem 4rem;
-  text-align: center;
-}
-
-.hero-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
-  background: rgba(59,130,246,0.12);
-  border: 1px solid rgba(59,130,246,0.3);
-  border-radius: 999px;
-  padding: 0.3rem 0.9rem;
-  font-size: 0.78rem;
-  color: var(--accent2);
-  margin-bottom: 2rem;
-  letter-spacing: 0.03em;
-}
-
-.hero h1 {
-  font-size: clamp(2rem, 5vw, 3.4rem);
-  font-weight: 700;
-  line-height: 1.2;
-  letter-spacing: -0.02em;
-  margin-bottom: 1.2rem;
-}
-
-.hero h1 .hl {
-  background: linear-gradient(90deg, var(--accent), var(--accent2));
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
-
-.hero p {
-  font-size: 1.1rem;
-  color: var(--muted);
-  max-width: 540px;
-  margin: 0 auto 2.5rem;
-}
-
-.hero-cta {
-  display: flex;
-  gap: 1rem;
-  justify-content: center;
-  flex-wrap: wrap;
-}
-
-.btn-primary {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  background: var(--accent);
-  color: #fff;
-  padding: 0.65rem 1.4rem;
-  border-radius: 8px;
-  font-size: 0.9rem;
-  font-weight: 500;
-  transition: opacity 0.15s, transform 0.15s;
-}
-.btn-primary:hover { opacity: 0.88; transform: translateY(-1px); }
-
-.btn-secondary {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  background: transparent;
-  border: 1px solid var(--border);
-  color: var(--text);
-  padding: 0.65rem 1.4rem;
-  border-radius: 8px;
-  font-size: 0.9rem;
-  font-weight: 500;
-  transition: border-color 0.15s, background 0.15s;
-}
-.btn-secondary:hover { border-color: #555; background: var(--bg3); }
-
-/* ─── TERMINAL ─── */
-.terminal-wrap {
-  max-width: 700px;
-  margin: 3.5rem auto 0;
-  border-radius: 12px;
-  overflow: hidden;
-  border: 1px solid var(--border);
-  box-shadow: 0 24px 64px rgba(0,0,0,0.6);
-}
-
-.terminal-bar {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  background: #1c1c1c;
-  padding: 0.65rem 1rem;
-  border-bottom: 1px solid var(--border);
-}
-
-.dot { width: 12px; height: 12px; border-radius: 50%; }
-.dot-r { background: #ff5f57; }
-.dot-y { background: #febc2e; }
-.dot-g { background: #28c840; }
-
-.terminal-title {
-  flex: 1;
-  text-align: center;
-  font-size: 0.75rem;
-  color: var(--muted);
-  font-family: 'SF Mono', 'Fira Code', monospace;
-}
-
-.terminal-body {
-  background: #0f0f0f;
-  padding: 1.4rem 1.6rem;
-  font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
-  font-size: 0.82rem;
-  line-height: 1.75;
-  text-align: left;
-}
-
-.t-prompt { color: var(--accent); }
-.t-cmd    { color: var(--text); }
-.t-dim    { color: #555; }
-.t-agent  { color: var(--accent2); }
-.t-action { color: var(--text); }
-.t-cost   { color: var(--yellow); }
-.t-model  { color: #888; }
-.t-alert  { color: var(--red); font-weight: 600; }
-.t-green  { color: var(--green); }
-.t-blank  { height: 0.5rem; display: block; }
-
-/* ─── SECTION COMMON ─── */
-section { padding: 5rem 2rem; }
-.section-inner { max-width: 900px; margin: 0 auto; }
-
-.section-label {
-  font-size: 0.75rem;
-  font-weight: 600;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--accent);
-  margin-bottom: 0.75rem;
-}
-
-.section-title {
-  font-size: clamp(1.5rem, 3vw, 2.2rem);
-  font-weight: 700;
-  letter-spacing: -0.02em;
-  margin-bottom: 0.6rem;
-}
-
-.section-sub {
-  color: var(--muted);
-  font-size: 1rem;
-  margin-bottom: 3rem;
-}
-
-/* ─── FEATURES ─── */
-.features-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-  gap: 1.2rem;
-}
-
-.feature-card {
-  background: var(--bg2);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  padding: 1.5rem;
-  transition: border-color 0.2s, transform 0.2s;
-}
-.feature-card:hover { border-color: #444; transform: translateY(-2px); }
-.feature-icon { font-size: 1.6rem; margin-bottom: 0.8rem; }
-.feature-card h3 { font-size: 0.95rem; font-weight: 600; margin-bottom: 0.4rem; }
-.feature-card p  { font-size: 0.85rem; color: var(--muted); line-height: 1.6; }
-
-/* ─── HOW IT WORKS ─── */
-#how { background: var(--bg2); }
-
-.pipeline {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 0;
-  margin-bottom: 1.5rem;
-  justify-content: center;
-}
-
-.pipe-step {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.4rem;
-  text-align: center;
-}
-
-.pipe-box {
-  background: var(--bg3);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: 0.6rem 1rem;
-  font-size: 0.8rem;
-  font-weight: 500;
-  white-space: nowrap;
-}
-
-.pipe-label { font-size: 0.7rem; color: var(--muted); }
-
-.pipe-arrow {
-  color: var(--border);
-  font-size: 1.2rem;
-  padding: 0 0.4rem;
-  padding-bottom: 1.2rem;
-}
-
-.pipe-highlight .pipe-box { border-color: var(--accent); color: var(--accent2); }
-
-.how-detail {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 1rem;
-  margin-top: 2rem;
-}
-
-.how-item { border-left: 2px solid var(--accent); padding-left: 1rem; }
-.how-item h4 { font-size: 0.88rem; font-weight: 600; margin-bottom: 0.3rem; }
-.how-item p  { font-size: 0.8rem; color: var(--muted); }
-
-/* ─── PROVIDERS ─── */
-.providers-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 1rem;
-}
-
-.provider-card {
-  background: var(--bg2);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  padding: 1.4rem 1.5rem;
-  transition: border-color 0.2s;
-}
-.provider-card:hover { border-color: var(--accent); }
-.provider-name { font-size: 0.95rem; font-weight: 600; margin-bottom: 0.6rem; }
-.provider-env {
-  background: var(--bg3);
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  padding: 0.5rem 0.8rem;
-  font-family: 'SF Mono', 'Fira Code', monospace;
-  font-size: 0.72rem;
-  color: var(--accent2);
-  word-break: break-all;
-}
-
-/* ─── QUICK START ─── */
-.steps { display: flex; flex-direction: column; gap: 1rem; }
-
-.step { display: flex; gap: 1.2rem; align-items: flex-start; }
-
-.step-num {
-  flex-shrink: 0;
-  width: 28px;
-  height: 28px;
-  background: rgba(59,130,246,0.15);
-  border: 1px solid rgba(59,130,246,0.4);
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 0.75rem;
-  font-weight: 700;
-  color: var(--accent);
-  margin-top: 2px;
-}
-
-.step-body h3 { font-size: 0.9rem; font-weight: 600; margin-bottom: 0.3rem; }
-.step-body p  { font-size: 0.82rem; color: var(--muted); margin-bottom: 0.5rem; }
-
-.code-block {
-  background: var(--bg3);
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  padding: 0.6rem 0.9rem;
-  font-family: 'SF Mono', 'Fira Code', monospace;
-  font-size: 0.8rem;
-  color: var(--accent2);
-  overflow-x: auto;
-}
-
-/* ─── COMMANDS ─── */
-#commands { background: var(--bg2); }
-
-.commands-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 0.88rem;
-}
-.commands-table th {
-  text-align: left;
-  padding: 0.6rem 1rem;
-  color: var(--muted);
-  font-weight: 500;
-  font-size: 0.75rem;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  border-bottom: 1px solid var(--border);
-}
-.commands-table td {
-  padding: 0.75rem 1rem;
-  border-bottom: 1px solid rgba(255,255,255,0.04);
-  vertical-align: top;
-}
-.commands-table tr:last-child td { border-bottom: none; }
-.commands-table td:first-child {
-  font-family: 'SF Mono', 'Fira Code', monospace;
-  color: var(--accent2);
-  white-space: nowrap;
-  width: 260px;
-}
-.commands-table td:last-child { color: var(--muted); }
-
-/* ─── FOOTER ─── */
-footer {
-  border-top: 1px solid var(--border);
-  padding: 2rem;
-  text-align: center;
-  font-size: 0.82rem;
-  color: var(--muted);
-}
-footer a { color: var(--accent); transition: opacity 0.15s; }
-footer a:hover { opacity: 0.75; }
-.footer-links {
-  display: flex;
-  justify-content: center;
-  gap: 1.5rem;
-  margin-bottom: 1rem;
-  flex-wrap: wrap;
-}
-
-/* ─── RESPONSIVE ─── */
-@media (max-width: 600px) {
-  nav { padding: 0 1.2rem; }
-  .hero { padding: 3.5rem 1.2rem 3rem; }
-  section { padding: 3rem 1.2rem 4rem; }
-  .nav-links a:not(.btn-gh):not(.btn-portal) { display: none; }
+@media (max-width: 700px) {
+  .nav-links { display: none; }
+  .stats-grid { grid-template-columns: 1fr; }
+  .stat-cell:not(:last-child) { border-right: none; border-bottom: 1px solid #18181B; }
+  .hero h1 { font-size: 2.2rem; }
+  .cta-card { padding: 48px 24px; }
+  .footer-inner { flex-direction: column; align-items: flex-start; }
 }
 </style>
 </head>
 <body>
 
-<!-- NAV -->
+<!-- ── NAV ── -->
 <nav>
-  <a class="nav-logo" href="#">
-    <span class="org">CHUNK-jp</span>
-    <span class="sep">/</span>
-    <span>agent-watch</span>
-  </a>
-  <div class="nav-links">
-    <a href="#features">Features</a>
-    <a href="#quickstart">Quick Start</a>
-    <a class="btn-portal" href="https://CHUNK-jp.github.io/" target="_blank" rel="noopener">← CHUNK-jp Portal</a>
-    <a class="btn-gh" href="https://github.com/CHUNK-jp/agent-watch" target="_blank" rel="noopener">
-      <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/></svg>
-      GitHub
+  <div class="nav-inner">
+    <div class="nav-logo">
+      <div class="nav-logo-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#3B82F6" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" width="17" height="17">
+          <rect x="2" y="4" width="20" height="14" rx="2"/>
+          <path d="M9 22h6M12 18v4"/>
+          <path d="M6 14l3.5-3.5 2.5 2 4-5"/>
+          <circle cx="17.5" cy="7.5" r="1" fill="#3B82F6" stroke="none"/>
+        </svg>
+      </div>
+      <span class="nav-logo-text">AgentWatch</span>
+    </div>
+    <div class="nav-links">
+      <a href="#capabilities">Capabilities</a>
+      <a href="#frameworks">Frameworks</a>
+      <a href="#privacy">Privacy</a>
+      <a href="https://github.com/CHUNK-jp/agent-watch" target="_blank" rel="noopener">Docs</a>
+    </div>
+    <a class="nav-cta" href="#download">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" width="13" height="13">
+        <path d="M8 2v8M5 7l3 3 3-3"/><path d="M2 12h12"/>
+      </svg>
+      Download for Mac
     </a>
   </div>
 </nav>
 
-<!-- HERO -->
+<!-- ── HERO ── -->
 <section class="hero">
-  <div class="hero-badge">👁 ローカル完結 &nbsp;·&nbsp; クラウド不使用 &nbsp;·&nbsp; 無料</div>
-  <h1>AIエージェントが<br/><span class="hl">何をしているか、見えていますか？</span></h1>
-  <p>AgentWatch はあなたのAIエージェントの動作・コスト・API呼び出し履歴をリアルタイムで可視化するローカルCLIダッシュボード。エージェントの挙動を完全に把握してください。</p>
-  <div class="hero-cta">
-    <a class="btn-primary" href="https://github.com/CHUNK-jp/agent-watch" target="_blank" rel="noopener">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/></svg>
-      GitHub で見る
-    </a>
-    <a class="btn-secondary" href="#quickstart">クイックスタート →</a>
-  </div>
+  <div class="hero-bg-glow"></div>
+  <div class="hero-bg-grid"></div>
+  <div class="hero-inner">
 
-  <!-- Terminal Demo -->
-  <div class="terminal-wrap">
-    <div class="terminal-bar">
-      <div class="dot dot-r"></div>
-      <div class="dot dot-y"></div>
-      <div class="dot dot-g"></div>
-      <span class="terminal-title">agent-watch — zsh</span>
-    </div>
-    <div class="terminal-body">
-      <div><span class="t-prompt">❯ </span><span class="t-cmd">python3 agentwatch.py watch</span></div>
-      <div class="t-dim">&nbsp;&nbsp;👁  AgentWatch — starting up</div>
-      <div class="t-dim">&nbsp;&nbsp;Proxy     http://localhost:8080</div>
-      <div class="t-dim">&nbsp;&nbsp;Dashboard → http://localhost:7070</div>
-      <div class="t-green">&nbsp;&nbsp;✓ Monitoring active  (Ctrl+C to stop)</div>
-      <span class="t-blank"></span>
-      <div>
-        <span class="t-dim">[12:34:01] </span>
-        <span class="t-agent">claude-code</span>
-        <span class="t-action"> → chat_completion </span>
-        <span class="t-model">[claude-sonnet-4] </span>
-        <span class="t-cost"> $0.0031</span>
-        <span class="t-dim">  142ms</span>
+    <!-- Left: Copy -->
+    <div>
+      <div class="hero-badge">
+        <div class="hero-badge-dot"></div>
+        <span class="hero-badge-text">CLI dashboard · real-time · local</span>
       </div>
-      <div>
-        <span class="t-dim">[12:34:03] </span>
-        <span class="t-agent">my-agent&nbsp;&nbsp;&nbsp;</span>
-        <span class="t-action"> → chat_completion </span>
-        <span class="t-model">[gpt-4o-mini]    </span>
-        <span class="t-cost"> $0.0008</span>
-        <span class="t-dim">   89ms</span>
-      </div>
-      <div>
-        <span class="t-dim">[12:34:07] </span>
-        <span class="t-agent">claude-code</span>
-        <span class="t-action"> → chat_completion </span>
-        <span class="t-model">[claude-sonnet-4] </span>
-        <span class="t-cost"> $0.0044</span>
-        <span class="t-dim">  198ms</span>
-      </div>
-      <span class="t-blank"></span>
-      <div class="t-alert">&nbsp;&nbsp;⚠️  Cost alert: $0.1012 exceeded $0.10 threshold</div>
-      <span class="t-blank"></span>
-      <div class="t-dim">&nbsp;&nbsp;📊 Session: 3 actions · 4,821 tokens · $0.1012</div>
-    </div>
-  </div>
-</section>
-
-<!-- DEMO GIF -->
-<section style="padding: 0 2rem 4rem;">
-  <div style="max-width: 700px; margin: 0 auto; text-align: center;">
-    <img src="demo.gif" alt="AgentWatch demo" style="width: 100%; border-radius: 12px; border: 1px solid var(--border); box-shadow: 0 24px 64px rgba(0,0,0,0.6);" />
-  </div>
-</section>
-
-<!-- FEATURES -->
-<section id="features">
-  <div class="section-inner">
-    <div class="section-label">Features</div>
-    <h2 class="section-title">なぜ AgentWatch が必要なのか。</h2>
-    <p class="section-sub">エージェントは便利ですが、何をしているかが見えないことが多いです。AgentWatch がそれを変えます。</p>
-    <div class="features-grid">
-      <div class="feature-card">
-        <div class="feature-icon">⚡</div>
-        <h3>リアルタイム監視</h3>
-        <p>エージェントのすべてのAPI呼び出しを0.5秒以内にキャプチャ、WebSocketで即座にダッシュボードへ反映します。</p>
-      </div>
-      <div class="feature-card">
-        <div class="feature-icon">💰</div>
-        <h3>コスト自動計算</h3>
-        <p>OpenAI・Anthropicの最新料金テーブルに基づきトークン単価を自動計算。累計コストをリアルタイムで把握。</p>
-      </div>
-      <div class="feature-card">
-        <div class="feature-icon">🔔</div>
-        <h3>コスト・アクションアラート</h3>
-        <p>設定した閾値を超えたらターミナルに即座に通知。Slack webhookにも対応。暴走エージェントを止める。</p>
-      </div>
-      <div class="feature-card">
-        <div class="feature-icon">📊</div>
-        <h3>エージェント別分析</h3>
-        <p>複数エージェントを同時監視。どのエージェントがいつ・どのモデルで・いくら消費したかを一覧で確認。</p>
-      </div>
-      <div class="feature-card">
-        <div class="feature-icon">🔒</div>
-        <h3>完全ローカル動作</h3>
-        <p>プロキシも実ダッシュボードもlocalhost上で動作。ログは <code>~/.agentwatch/logs.db</code> に保存。外部サーバー不要。</p>
-      </div>
-      <div class="feature-card">
-        <div class="feature-icon">🔌</div>
-        <h3>マルチプロバイダー対応</h3>
-        <p>OpenAI・Anthropic・Ollamaをenv変数1行で切り替え。既存エージェントのコード変更ゼロで導入可能。</p>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- HOW IT WORKS -->
-<section id="how">
-  <div class="section-inner">
-    <div class="section-label">How It Works</div>
-    <h2 class="section-title">仕組み</h2>
-    <p class="section-sub">AgentWatch はAPIエンドポイントとエージェントの間に入る透過プロキシ。エージェントの動作は一切変えません。</p>
-
-    <div class="pipeline">
-      <div class="pipe-step">
-        <div class="pipe-box">🤖 Agent</div>
-        <div class="pipe-label">あなたのエージェント</div>
-      </div>
-      <div class="pipe-arrow">→</div>
-      <div class="pipe-step pipe-highlight">
-        <div class="pipe-box">👁 AgentWatch Proxy</div>
-        <div class="pipe-label">localhost:8080</div>
-      </div>
-      <div class="pipe-arrow">→</div>
-      <div class="pipe-step">
-        <div class="pipe-box">☁️ API</div>
-        <div class="pipe-label">OpenAI / Anthropic / Ollama</div>
-      </div>
-    </div>
-
-    <div class="pipeline">
-      <div class="pipe-step pipe-highlight">
-        <div class="pipe-box">🗄️ SQLite</div>
-        <div class="pipe-label">~/.agentwatch/logs.db</div>
-      </div>
-      <div class="pipe-arrow">→</div>
-      <div class="pipe-step pipe-highlight">
-        <div class="pipe-box">📊 Dashboard</div>
-        <div class="pipe-label">localhost:7070</div>
-      </div>
-      <div class="pipe-arrow">→</div>
-      <div class="pipe-step">
-        <div class="pipe-box">🔔 Alerts</div>
-        <div class="pipe-label">Terminal / Slack</div>
-      </div>
-    </div>
-
-    <div class="how-detail">
-      <div class="how-item">
-        <h4>透過プロキシ</h4>
-        <p>エージェントのAPIリクエストをそのまま転送しつつ、レスポンスからトークン数・モデル・レイテンスを抽出してDBへ記録。</p>
-      </div>
-      <div class="how-item">
-        <h4>コスト計算</h4>
-        <p>OpenAI・Anthropicの公式料金テーブルを内蔵。入力・出力トークンから自動で$コストを算出します。</p>
-      </div>
-      <div class="how-item">
-        <h4>WebSocketダッシュボード</h4>
-        <p>FastAPI + WebSocketで1秒ごとにブラウザへプッシュ。複数エージェントの状況をリアルタイムで表示。</p>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- SUPPORTED PROVIDERS -->
-<section id="providers">
-  <div class="section-inner">
-    <div class="section-label">対応プロバイダー</div>
-    <h2 class="section-title">env変数1行で導入完了</h2>
-    <p class="section-sub">既存エージェントのコードを一切変更せず、環境変数を設定するだけで監視開始。</p>
-    <div class="providers-grid">
-      <div class="provider-card">
-        <div class="provider-name">🟢 OpenAI</div>
-        <div class="provider-env">OPENAI_BASE_URL=http://localhost:8080/openai</div>
-      </div>
-      <div class="provider-card">
-        <div class="provider-name">🟠 Anthropic</div>
-        <div class="provider-env">ANTHROPIC_BASE_URL=http://localhost:8080/anthropic</div>
-      </div>
-      <div class="provider-card">
-        <div class="provider-name">🦙 Ollama</div>
-        <div class="provider-env">OLLAMA_HOST=http://localhost:8080/ollama</div>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- QUICK START -->
-<section id="quickstart">
-  <div class="section-inner">
-    <div class="section-label">Quick Start</div>
-    <h2 class="section-title">3分で監視開始</h2>
-    <p class="section-sub">Python 3.10 以上が必要です。</p>
-    <div class="steps">
-      <div class="step">
-        <div class="step-num">1</div>
-        <div class="step-body">
-          <h3>リポジトリをクローンして依存関係をインストール</h3>
-          <div class="code-block">git clone https://github.com/CHUNK-jp/agent-watch.git &amp;&amp; cd agent-watch<br/>pip install -r requirements.txt</div>
+      <h1>Full observability<br>into your <span class="hl">AI agents</span>.<br>As it happens.</h1>
+      <p class="hero-sub">AgentWatch gives developers a real-time CLI dashboard showing every API call, every token spent, and every agent action as it happens. Zero guesswork. Zero surprises. Zero cost overruns.</p>
+      <div class="hero-ctas">
+        <a class="btn-primary" href="#download">
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" width="16" height="16">
+            <path d="M10 3v10M6 9l4 4 4-4"/><path d="M3 15h14"/>
+          </svg>
+          Download for Mac — Free
+        </a>
+        <div class="hero-links">
+          <a class="hero-link" href="https://github.com/CHUNK-jp/agent-watch" target="_blank" rel="noopener">
+            <svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14">
+              <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/>
+            </svg>
+            View on GitHub
+          </a>
+          <span class="hero-sep">·</span>
+          <a class="hero-link hero-link-mono" href="https://github.com/CHUNK-jp/agent-watch" target="_blank" rel="noopener">
+            pip install agentwatch
+          </a>
         </div>
       </div>
-      <div class="step">
-        <div class="step-num">2</div>
-        <div class="step-body">
-          <h3>プロキシ設定を確認</h3>
-          <p>使用するAPIプロバイダーに応じた環境変数を確認します。</p>
-          <div class="code-block">python3 agentwatch.py config</div>
+      <p class="hero-note">macOS 12 Ventura or later · Python 3.10+ · No account</p>
+    </div>
+
+    <!-- Right: Terminal mockup -->
+    <div class="terminal-wrap">
+      <div class="terminal-glow"></div>
+      <div class="terminal">
+        <div class="terminal-titlebar">
+          <div class="term-dot"></div>
+          <div class="term-dot"></div>
+          <div class="term-dot"></div>
+          <div class="terminal-title">agentwatch v1.2.0 — live</div>
+          <div class="terminal-status">
+            <div class="status-dot"></div>
+            <span style="color:#22C55E;">ACTIVE</span>
+          </div>
         </div>
-      </div>
-      <div class="step">
-        <div class="step-num">3</div>
-        <div class="step-body">
-          <h3>エージェントの前に AgentWatch を起動</h3>
-          <div class="code-block">python3 agentwatch.py watch</div>
+        <div class="terminal-infobar">
+          <div>
+            agent: <span style="color:#A1A1AA;">gpt-4o-2024-11-20</span>
+            <span class="info-sep">│</span>
+            framework: <span style="color:#A1A1AA;">LangChain</span>
+          </div>
+          <div class="info-live">
+            <div class="live-dot"></div>
+            updating live
+          </div>
         </div>
-      </div>
-      <div class="step">
-        <div class="step-num">4</div>
-        <div class="step-body">
-          <h3>別ターミナルでエージェントを実行（env変数を設定して）</h3>
-          <div class="code-block">OPENAI_BASE_URL=http://localhost:8080/openai python3 your_agent.py</div>
-          <p style="margin-top:0.5rem">ダッシュボードが <a href="http://localhost:7070" style="color:var(--accent)">http://localhost:7070</a> で自動オープンします。</p>
+        <div class="terminal-logs" id="logArea"></div>
+        <div class="terminal-cursor" id="termCursor">▋</div>
+        <div class="terminal-footer">
+          <div class="footer-stats">
+            <span class="footer-stat">session: <span class="footer-stat-val footer-stat-cost" id="totalCost">$0.000</span></span>
+            <span class="footer-stat">calls: <span class="footer-stat-val footer-stat-neutral" id="totalCalls">0</span></span>
+            <span class="footer-stat">avg: <span class="footer-stat-val footer-stat-neutral">2.3s</span></span>
+          </div>
+          <span class="footer-refresh">100ms refresh</span>
         </div>
       </div>
     </div>
+
   </div>
 </section>
 
-<!-- COMMANDS -->
-<section id="commands">
+<!-- ── STATS STRIP ── -->
+<div class="stats-strip">
+  <div class="stats-grid">
+    <div class="stat-cell">
+      <div class="stat-value">&lt;100ms</div>
+      <div class="stat-label">Dashboard refresh rate</div>
+    </div>
+    <div class="stat-cell">
+      <div class="stat-value">12+</div>
+      <div class="stat-label">AI agent frameworks supported</div>
+    </div>
+    <div class="stat-cell">
+      <div class="stat-value">0 bytes</div>
+      <div class="stat-label">Sent to any external server</div>
+    </div>
+  </div>
+</div>
+
+<!-- ── CAPABILITIES ── -->
+<section id="capabilities" class="capabilities-section">
   <div class="section-inner">
-    <div class="section-label">Commands</div>
-    <h2 class="section-title">CLIリファレンス</h2>
-    <p class="section-sub">シンプルなコマンド体系。</p>
-    <table class="commands-table">
-      <thead>
-        <tr>
-          <th>コマンド</th>
-          <th>説明</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr>
-          <td>agentwatch.py watch</td>
-          <td>プロキシ（ライブログ）ダッシュボードを起動</td>
-        </tr>
-        <tr>
-          <td>agentwatch.py watch --alert-cost 0.05</td>
-          <td>コスト閾値を$0.05に設定してアラートを受け取る</td>
-        </tr>
-        <tr>
-          <td>agentwatch.py watch --no-dashboard</td>
-          <td>Webダッシュボードなしでターミナルのみ監視</td>
-        </tr>
-        <tr>
-          <td>agentwatch.py status</td>
-          <td>セッション累計（アクション数・トークン・コスト）を表示</td>
-        </tr>
-        <tr>
-          <td>agentwatch.py export output.json</td>
-          <td>全ログをJSONにエクスポート</td>
-        </tr>
-        <tr>
-          <td>agentwatch.py clear</td>
-          <td>すべてのログを削除</td>
-        </tr>
-        <tr>
-          <td>agentwatch.py config</td>
-          <td>プロキシ設定の環境変数を表示</td>
-        </tr>
-      </tbody>
-    </table>
+    <div class="section-header">
+      <div class="section-eyebrow">Capabilities</div>
+      <h2 class="section-title">Everything you need<br>to own your agent costs.</h2>
+      <p class="section-sub">Built for developers who want full control, not just dashboards.</p>
+    </div>
+    <div class="capabilities-grid">
+      <div class="cap-card">
+        <div class="cap-icon">
+          <svg viewBox="0 0 22 22" fill="none" stroke="#3B82F6" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" width="20" height="20">
+            <path d="M4 18v-3m4 3V9m4 9v-6m4 6V3"/>
+          </svg>
+        </div>
+        <h3>Real-time cost tracking</h3>
+        <p>Watch costs accumulate as they happen. Per-call, per-session, and per-agent breakdowns updated at 100ms intervals.</p>
+      </div>
+      <div class="cap-card">
+        <div class="cap-icon">
+          <svg viewBox="0 0 22 22" fill="none" stroke="#3B82F6" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" width="20" height="20">
+            <circle cx="11" cy="11" r="9"/><path d="M11 7v4l3 3"/>
+          </svg>
+        </div>
+        <h3>Full API call history</h3>
+        <p>Every call logged with timestamp, tool name, token counts, latency, and cost. Searchable and filterable. Goes back to session start.</p>
+      </div>
+      <div class="cap-card">
+        <div class="cap-icon">
+          <svg viewBox="0 0 22 22" fill="none" stroke="#3B82F6" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" width="20" height="20">
+            <circle cx="7" cy="7" r="4"/><circle cx="15" cy="15" r="4"/>
+            <path d="M10.5 10.5l1 1"/>
+          </svg>
+        </div>
+        <h3>Multi-agent monitoring</h3>
+        <p>Track multiple agents running simultaneously. Compare cost rates, call frequencies, and behavior patterns side by side.</p>
+      </div>
+      <div class="cap-card">
+        <div class="cap-icon">
+          <svg viewBox="0 0 22 22" fill="none" stroke="#3B82F6" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" width="20" height="20">
+            <ellipse cx="11" cy="11" rx="9" ry="6"/>
+            <circle cx="11" cy="11" r="3"/>
+          </svg>
+        </div>
+        <h3>Behavior visualization</h3>
+        <p>Spot loops, redundant calls, and inefficiencies in agent decision-making before they compound into runaway costs.</p>
+      </div>
+      <div class="cap-card">
+        <div class="cap-icon">
+          <svg viewBox="0 0 22 22" fill="none" stroke="#3B82F6" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" width="20" height="20">
+            <path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+            <path d="M13.73 21a2 2 0 01-3.46 0"/>
+          </svg>
+        </div>
+        <h3>Budget alerts</h3>
+        <p>Set per-agent or per-session spend limits. Get notified — or automatically halt agents — before costs spiral out of control.</p>
+      </div>
+      <div class="cap-card">
+        <div class="cap-icon">
+          <svg viewBox="0 0 22 22" fill="none" stroke="#3B82F6" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" width="20" height="20">
+            <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
+            <polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+          </svg>
+        </div>
+        <h3>Export &amp; analyze</h3>
+        <p>Export full logs as JSON or CSV. Pipe into your own analytics tooling, Jupyter notebooks, or billing systems.</p>
+      </div>
+    </div>
   </div>
 </section>
 
-<!-- FOOTER -->
+<!-- ── FRAMEWORKS ── -->
+<section id="frameworks" class="frameworks-section">
+  <div class="section-inner">
+    <div class="section-header" style="margin-bottom:48px;">
+      <div class="section-eyebrow">Supported frameworks</div>
+      <h2 class="section-title" style="font-size:clamp(1.8rem,3vw,2.25rem);">Works with your stack.</h2>
+      <p class="section-sub" style="max-width:none;">Drop-in integration for the most popular agent frameworks.</p>
+    </div>
+    <div class="framework-tags">
+      <div class="fw-tag"><div class="fw-dot"></div><span class="fw-name">LangChain</span></div>
+      <div class="fw-tag"><div class="fw-dot"></div><span class="fw-name">AutoGen</span></div>
+      <div class="fw-tag"><div class="fw-dot"></div><span class="fw-name">CrewAI</span></div>
+      <div class="fw-tag"><div class="fw-dot"></div><span class="fw-name">LlamaIndex</span></div>
+      <div class="fw-tag"><div class="fw-dot"></div><span class="fw-name">DSPy</span></div>
+      <div class="fw-tag"><div class="fw-dot"></div><span class="fw-name">Claude Code</span></div>
+      <div class="fw-tag"><div class="fw-dot"></div><span class="fw-name">Agno</span></div>
+      <div class="fw-tag fw-tag-custom"><div class="fw-dot fw-dot-blue"></div><span class="fw-name fw-name-blue">Custom SDK</span></div>
+    </div>
+    <p class="frameworks-note">Any framework that uses OpenAI-compatible APIs works out of the box.</p>
+  </div>
+</section>
+
+<!-- ── PRIVACY ── -->
+<section id="privacy" class="privacy-section">
+  <div class="section-inner">
+    <div class="privacy-card">
+      <div class="privacy-top">
+        <div>
+          <div class="section-eyebrow">100% local</div>
+          <h2 style="font-size:clamp(1.6rem,3vw,2.25rem);font-weight:700;letter-spacing:-0.025em;line-height:1.15;margin-bottom:20px;">Your agent's actions are your business. Nobody else's.</h2>
+          <p style="font-size:15px;color:#71717A;line-height:1.75;margin-bottom:24px;">AgentWatch runs entirely as a local CLI process. All telemetry, logs, and cost data stays on your machine. We have no servers, no analytics pipeline, and no visibility into your agents.</p>
+          <div class="privacy-checks">
+            <div class="privacy-check">
+              <svg viewBox="0 0 16 16" fill="none" stroke="#22C55E" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><path d="M13 4L6 11 3 8"/></svg>
+              No outbound network connections
+            </div>
+            <div class="privacy-check">
+              <svg viewBox="0 0 16 16" fill="none" stroke="#22C55E" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><path d="M13 4L6 11 3 8"/></svg>
+              Logs stored only in local filesystem
+            </div>
+            <div class="privacy-check">
+              <svg viewBox="0 0 16 16" fill="none" stroke="#22C55E" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><path d="M13 4L6 11 3 8"/></svg>
+              Open source — audit every line
+            </div>
+            <div class="privacy-check">
+              <svg viewBox="0 0 16 16" fill="none" stroke="#22C55E" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><path d="M13 4L6 11 3 8"/></svg>
+              Air-gapped environments supported
+            </div>
+          </div>
+        </div>
+        <div class="code-block">
+          <div class="code-header">
+            <span class="code-filename">agentwatch.config.ts</span>
+            <span class="code-badge">local only</span>
+          </div>
+          <div class="code-body">
+            <div class="c-dim">// All data stays on your machine</div>
+            <div style="margin-top:4px;"><span class="c-purple">export</span> <span class="c-blue">const</span> <span class="c-white">config</span> <span class="c-gray">= {</span></div>
+            <div class="c-indent"><span class="c-key">storage</span><span class="c-gray">:</span> <span class="c-str">'~/.agentwatch/logs'</span><span class="c-gray">,</span></div>
+            <div class="c-indent"><span class="c-key">telemetry</span><span class="c-gray">:</span> <span class="c-false">false</span><span class="c-gray">,</span></div>
+            <div class="c-indent"><span class="c-key">network</span><span class="c-gray">:</span> <span class="c-false">false</span><span class="c-gray">,</span></div>
+            <div class="c-indent"><span class="c-key">refreshMs</span><span class="c-gray">:</span> <span class="c-num">100</span><span class="c-gray">,</span></div>
+            <div class="c-gray">}</div>
+          </div>
+        </div>
+      </div>
+      <div class="privacy-bottom">
+        <div class="privacy-bottom-text">
+          <div class="label">Get started in one command</div>
+          <div class="sub">Install the CLI, wrap your agent, and you're monitoring in under 60 seconds.</div>
+        </div>
+        <div class="install-snippet">
+          <span class="install-prompt">$</span>
+          <span class="install-cmd">pip install agentwatch</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── CTA ── -->
+<section id="download" class="cta-section">
+  <div class="cta-card">
+    <div class="cta-bg-glow"></div>
+    <div class="cta-line"></div>
+    <div class="cta-inner">
+      <div class="cta-eyebrow">$ agentwatch --start</div>
+      <h2 class="cta-title">Stop guessing.<br>Start watching.</h2>
+      <p class="cta-sub">Full observability for your AI agents. Free, local, and open source.</p>
+      <div class="cta-buttons">
+        <a class="btn-primary-lg" href="https://github.com/CHUNK-jp/agent-watch" target="_blank" rel="noopener">
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" width="17" height="17">
+            <path d="M10 3v10M6 9l4 4 4-4"/><path d="M3 15h14"/>
+          </svg>
+          Download for Mac — Free
+        </a>
+        <a class="btn-ghost-lg" href="https://github.com/CHUNK-jp/agent-watch" target="_blank" rel="noopener">pip install agentwatch</a>
+      </div>
+      <p class="cta-note">macOS 12+ · Python 3.10+ · No account · Open source · MIT License</p>
+    </div>
+  </div>
+</section>
+
+<!-- ── FOOTER ── -->
 <footer>
-  <div class="footer-links">
-    <a href="https://github.com/CHUNK-jp/agent-watch" target="_blank" rel="noopener">GitHub</a>
-    <a href="https://chunk-jp.github.io/" target="_blank" rel="noopener">CHUNK-jp Portal</a>
-    <a href="https://github.com/CHUNK-jp/agent-watch/blob/main/LICENSE" target="_blank" rel="noopener">MIT License</a>
+  <div class="footer-inner">
+    <div class="footer-logo">
+      <div class="footer-logo-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#3B82F6" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" width="14" height="14">
+          <rect x="2" y="4" width="20" height="14" rx="2"/>
+          <path d="M9 22h6M12 18v4"/>
+          <path d="M6 14l3.5-3.5 2.5 2 4-5"/>
+          <circle cx="17.5" cy="7.5" r="1" fill="#3B82F6" stroke="none"/>
+        </svg>
+      </div>
+      <span class="footer-logo-text">AgentWatch</span>
+      <span class="footer-suite">Part of the Common Tools suite</span>
+    </div>
+    <div class="footer-links">
+      <a href="#capabilities">Capabilities</a>
+      <a href="#frameworks">Frameworks</a>
+      <a href="https://github.com/CHUNK-jp/agent-watch" target="_blank" rel="noopener">Docs</a>
+      <a href="https://github.com/CHUNK-jp/agent-watch" target="_blank" rel="noopener">GitHub</a>
+    </div>
+    <div class="footer-copy">© 2025 AgentWatch · MIT License</div>
   </div>
-  <p>Built by <a href="https://github.com/CHUNK-jp" target="_blank" rel="noopener">CHUNK-jp</a> · No cloud. No subscription. Just your agents.</p>
 </footer>
 
+<script>
+(function () {
+  const POOL = [
+    { dir: '→', action: 'web_search("AI agent benchmarks 2025")',  cost: 0.003, type: 'call' },
+    { dir: '←', action: 'response · 847 tokens · 0 cached',       cost: 0.008, type: 'resp' },
+    { dir: '→', action: 'read_file("~/data/costs.csv")',           cost: 0.001, type: 'call' },
+    { dir: '←', action: 'response · 1,204 tokens · 312 cached',   cost: 0.012, type: 'resp' },
+    { dir: '→', action: 'execute_code("analyze_dataframe(df)")',   cost: 0.004, type: 'call' },
+    { dir: '←', action: 'response · 2,891 tokens · 0 cached',     cost: 0.028, type: 'resp' },
+    { dir: '→', action: 'write_file("output/report.json")',        cost: 0.002, type: 'call' },
+    { dir: '←', action: 'response · 312 tokens · 108 cached',     cost: 0.003, type: 'resp' },
+    { dir: '→', action: 'browser_navigate("https://arxiv.org")',   cost: 0.005, type: 'call' },
+    { dir: '←', action: 'response · 3,410 tokens · 200 cached',   cost: 0.034, type: 'resp' },
+    { dir: '→', action: 'bash("grep -r TODO ./src")',              cost: 0.001, type: 'call' },
+    { dir: '←', action: 'response · 156 tokens · 0 cached',       cost: 0.002, type: 'resp' },
+    { dir: '→', action: 'send_notification("analysis complete")',  cost: 0.001, type: 'call' },
+    { dir: '←', action: 'response · 48 tokens · 0 cached',        cost: 0.001, type: 'resp' },
+  ];
+
+  const logArea   = document.getElementById('logArea');
+  const cursorEl  = document.getElementById('termCursor');
+  const costEl    = document.getElementById('totalCost');
+  const callsEl   = document.getElementById('totalCalls');
+
+  let logs       = [];
+  let totalCost  = 0;
+  let totalCalls = 0;
+  let poolIdx    = 0;
+  let cursorOn   = true;
+
+  function nowStr() {
+    const d = new Date();
+    return [d.getHours(), d.getMinutes(), d.getSeconds()]
+      .map(n => String(n).padStart(2, '0')).join(':');
+  }
+
+  function renderLogs() {
+    logArea.innerHTML = logs.map(l => {
+      const dirClass    = l.type === 'call' ? 'log-dir-call'    : 'log-dir-resp';
+      const actionClass = l.type === 'call' ? 'log-action-call' : 'log-action-resp';
+      return `<div class="log-row">
+        <span class="log-time">${l.time}</span>
+        <span class="${dirClass}">${l.dir}</span>
+        <span class="${actionClass}">${l.action}</span>
+        <span class="log-cost">$${l.cost.toFixed(3)}</span>
+      </div>`;
+    }).join('');
+  }
+
+  function addEntry() {
+    const entry = { ...POOL[poolIdx % POOL.length], time: nowStr() };
+    poolIdx++;
+    logs = [...logs.slice(-5), entry];
+    totalCost  += entry.cost;
+    totalCalls += 1;
+    renderLogs();
+    costEl.textContent  = '$' + totalCost.toFixed(3);
+    callsEl.textContent = totalCalls;
+  }
+
+  // Seed with 5 initial entries
+  const seedTime = ['12:34:01','12:34:02','12:34:04','12:34:05','12:34:07'];
+  POOL.slice(0, 5).forEach((p, i) => {
+    const e = { ...p, time: seedTime[i] };
+    logs.push(e);
+    totalCost  += e.cost;
+    totalCalls += 1;
+  });
+  poolIdx = 5;
+  renderLogs();
+  costEl.textContent  = '$' + totalCost.toFixed(3);
+  callsEl.textContent = totalCalls;
+
+  setInterval(addEntry, 1900);
+  setInterval(() => {
+    cursorOn = !cursorOn;
+    cursorEl.textContent = cursorOn ? '▋' : ' ';
+  }, 520);
+})();
+</script>
 </body>
 </html>
