@@ -9,7 +9,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
 <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-html { scroll-behavior: smooth; }
+html { scroll-behavior: smooth; scroll-padding-top: 80px; }
 body { background: #09090B; color: #FAFAFA; font-family: 'Inter', system-ui, -apple-system, sans-serif; -webkit-font-smoothing: antialiased; line-height: 1; }
 ::selection { background: rgba(59,130,246,0.25); color: #FAFAFA; }
 ::-webkit-scrollbar { width: 6px; }
@@ -314,6 +314,70 @@ nav {
 .install-prompt { color: #52525B; }
 .install-cmd { color: #FAFAFA; }
 
+/* ── WHY I BUILT THIS ── */
+.story-section { padding: 80px 24px 120px; }
+.story-grid {
+  display: grid; grid-template-columns: 220px 1fr;
+  gap: 80px; align-items: start;
+}
+.story-label-col {
+  padding-top: 8px; position: sticky; top: 88px;
+}
+.story-eyebrow {
+  font-size: 11px; font-weight: 600; color: #52525B;
+  text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 14px;
+}
+.story-rule { width: 24px; height: 2px; background: #3B82F6; }
+.story-author {
+  margin-top: 48px; padding-top: 40px; border-top: 1px solid #18181B;
+}
+.story-author-icon {
+  width: 40px; height: 40px;
+  background: rgba(59,130,246,0.08); border: 1px solid rgba(59,130,246,0.15);
+  border-radius: 50%; display: flex; align-items: center; justify-content: center;
+  margin-bottom: 14px;
+}
+.story-author-name { font-size: 14px; font-weight: 600; color: #FAFAFA; }
+.story-author-handle {
+  font-size: 12px; color: #52525B; margin-top: 4px;
+  font-family: 'JetBrains Mono', monospace;
+}
+.story-prose p {
+  font-size: 20px; line-height: 1.8; margin-bottom: 32px;
+  letter-spacing: -0.015em; font-weight: 400;
+}
+.story-prose p:first-child { color: #FAFAFA; }
+.story-prose p:not(:first-child) { color: #71717A; }
+.story-prose p:last-child { margin-bottom: 0; }
+
+/* ── GUIDE ── */
+.guide-section {
+  padding: 80px 24px 120px;
+  background: #0C0C0E;
+  border-top: 1px solid #18181B;
+  border-bottom: 1px solid #18181B;
+}
+.guide-grid {
+  display: grid; grid-template-columns: repeat(2, 1fr);
+  gap: 2px; background: #18181B;
+  border-radius: 16px; overflow: hidden; border: 1px solid #18181B;
+}
+.guide-card { background: #09090B; padding: 40px; transition: background 0.15s; }
+.guide-card:hover { background: #0E0E10; }
+.guide-card-inner { display: flex; align-items: flex-start; gap: 20px; }
+.guide-step {
+  font-size: 11px; font-weight: 700; color: #3B82F6;
+  font-family: 'JetBrains Mono', monospace;
+  background: rgba(59,130,246,0.08); border: 1px solid rgba(59,130,246,0.18);
+  border-radius: 6px; padding: 5px 10px; flex-shrink: 0;
+  letter-spacing: 0.05em; margin-top: 1px;
+}
+.guide-card h3 { font-size: 17px; font-weight: 600; margin-bottom: 10px; letter-spacing: -0.01em; }
+.guide-card p { font-size: 14px; color: #71717A; line-height: 1.75; }
+.guide-card p code {
+  font-family: 'JetBrains Mono', monospace; color: #A1A1AA; font-size: 13px;
+}
+
 /* ── CTA ── */
 .cta-section { padding: 0 24px 120px; }
 .cta-card {
@@ -392,6 +456,9 @@ footer { border-top: 1px solid #18181B; padding: 40px 24px; }
   .privacy-top { grid-template-columns: 1fr; gap: 32px; padding: 40px; }
   .privacy-bottom { padding: 24px 40px; }
   .capabilities-grid { grid-template-columns: 1fr; }
+  .story-grid { grid-template-columns: 1fr; gap: 40px; }
+  .story-label-col { position: static; }
+  .guide-grid { grid-template-columns: 1fr; }
 }
 @media (max-width: 700px) {
   .nav-links { display: none; }
@@ -400,6 +467,7 @@ footer { border-top: 1px solid #18181B; padding: 40px 24px; }
   .hero h1 { font-size: 2.2rem; }
   .cta-card { padding: 48px 24px; }
   .footer-inner { flex-direction: column; align-items: flex-start; }
+  .story-prose p { font-size: 17px; }
 }
 </style>
 </head>
@@ -423,6 +491,7 @@ footer { border-top: 1px solid #18181B; padding: 40px 24px; }
       <a href="#capabilities">Capabilities</a>
       <a href="#frameworks">Frameworks</a>
       <a href="#privacy">Privacy</a>
+      <a href="#guide">Quick start</a>
       <a href="https://github.com/CHUNK-jp/agent-watch" target="_blank" rel="noopener">Docs</a>
     </div>
     <a class="nav-cta" href="#download">
@@ -675,6 +744,80 @@ footer { border-top: 1px solid #18181B; padding: 40px 24px; }
         <div class="install-snippet">
           <span class="install-prompt">$</span>
           <span class="install-cmd">pip install agentwatch</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── WHY I BUILT THIS ── -->
+<section id="story" class="story-section">
+  <div class="section-inner">
+    <div class="story-grid">
+      <div class="story-label-col">
+        <div class="story-eyebrow">Why I built this</div>
+        <div class="story-rule"></div>
+        <div class="story-author">
+          <div class="story-author-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="#3B82F6" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" width="16" height="16">
+              <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/>
+            </svg>
+          </div>
+          <div class="story-author-name">The developer</div>
+          <div class="story-author-handle">@chunk_jp</div>
+        </div>
+      </div>
+      <div class="story-prose">
+        <p>The first time I ran an AI agent overnight I woke up to a $47 bill and no clear idea what it had actually done. The agent had finished its task — sort of — but somewhere in the middle it had looped on a subtask, made the same API call sixteen times, and burned through tokens I hadn't budgeted for. I had no log, no trace, no replay. Just a number on a dashboard and a vague sense of unease.</p>
+        <p>I looked around for something that would show me, in real time, what my agents were doing. The tools I found were all cloud-based: pipe your agent's traffic through our servers, sign up for an account, and we'll show you a pretty dashboard. That meant handing off my prompts, my responses, and my architecture to a third party whose business model I didn't fully understand. For production agents working with sensitive data, that felt like exactly the wrong trade.</p>
+        <p>AgentWatch is what I actually wanted: a local CLI process that intercepts nothing, sits beside your agent as it runs, and gives you full cost and behavior visibility without a single byte leaving your machine. It's not a SaaS. It's a tool — yours, running locally, answering only to you.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── GUIDE: HOW TO USE AGENTWATCH ── -->
+<section id="guide" class="guide-section">
+  <div class="section-inner">
+    <div class="section-header">
+      <div class="section-eyebrow">Quick start</div>
+      <h2 class="section-title">Full observability in four steps.</h2>
+    </div>
+    <div class="guide-grid">
+      <div class="guide-card">
+        <div class="guide-card-inner">
+          <div class="guide-step">01</div>
+          <div>
+            <h3>Install the CLI</h3>
+            <p>Run <code>pip install agentwatch</code> or clone the repo. No account, no signup — it's ready to use the moment it's installed.</p>
+          </div>
+        </div>
+      </div>
+      <div class="guide-card">
+        <div class="guide-card-inner">
+          <div class="guide-step">02</div>
+          <div>
+            <h3>Point it at your agent</h3>
+            <p>Add one line to your <code>agentwatch.config.ts</code> to point at your framework — LangChain, CrewAI, AutoGen, or any OpenAI-compatible SDK. No code changes to your agent.</p>
+          </div>
+        </div>
+      </div>
+      <div class="guide-card">
+        <div class="guide-card-inner">
+          <div class="guide-step">03</div>
+          <div>
+            <h3>Watch costs and behavior in real time</h3>
+            <p>Run <code>agentwatch --start</code> and your terminal becomes a live dashboard — every API call, token count, latency, and running cost updated at 100ms intervals.</p>
+          </div>
+        </div>
+      </div>
+      <div class="guide-card">
+        <div class="guide-card-inner">
+          <div class="guide-step">04</div>
+          <div>
+            <h3>Everything stays local — zero cloud</h3>
+            <p>Logs are written to <code>~/.agentwatch/</code> and never leave your machine. Export as JSON or CSV for your own analysis. Full observability, no third-party servers, no exceptions.</p>
+          </div>
         </div>
       </div>
     </div>
